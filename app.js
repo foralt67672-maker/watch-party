@@ -14,19 +14,59 @@
      Without a working TURN server, connections only succeed when both
      peers can reach each other directly (e.g. same WiFi).
 
-     Uses ExpressTURN free public TURN server — STATIC long-term credentials,
+     Uses ExpressTURN free public TURN servers — STATIC long-term credentials,
      no signup, no API call, no CORS. Works from any browser or the APK.
-     Get/refresh free credentials at https://www.expressturn.com/ (they
-     rotate the free password periodically — when the relay badge goes red,
-     grab the new username/password from that page and update TURN_USERNAME /
-     TURN_PASSWORD below).
+     Multiple credentials can be listed in TURN_CREDENTIALS below — the ICE
+     layer tries each relay and fails over automatically, so more entries =
+     more aggregate monthly quota + redundancy. Get/refresh free credentials
+     at https://www.expressturn.com/ (the shared free password rotates
+     periodically — when the relay badge goes red, grab fresh username/
+     password pairs and add/replace entries in TURN_CREDENTIALS).
      ============================================================ */
 
   // ExpressTURN free credentials (no account / no credit card).
-  var TURN_HOST     = "free.expressturn.com";
-  var TURN_PORT     = 3478;
-  var TURN_USERNAME = "000000002097349597";
-  var TURN_PASSWORD = "diN8vIfMKBph5bdlH0STB8Hsnd0=";
+  // Add as many as you like — the browser tries each TURN server and uses
+  // whichever is reachable. More entries = more aggregate monthly quota +
+  // redundancy (if one relay's quota runs dry or it's down, traffic moves
+  // to the next). Get/refresh free creds at https://www.expressturn.com/.
+  var TURN_CREDENTIALS = [
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097349597", password: "diN8vIfMKBph5bdlH0STB8Hsnd0=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097355327", password: "5wuXWQo7IoQKsGuo/VfKMSYCBuA=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097356599", password: "AbXRED7YoAvoILwEmVtF7zNDUDA=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097356629", password: "ZEl+j9tmgX4F83E6xQCRSDoNCDc=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097356710", password: "Y0CH93a0l3yHZSshv8iFYOLt3uU=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097358835", password: "1XMGoPyOtO2pza11KadphYEUTUs=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097358984", password: "s6rRoE7wtGqIO4NsuvBs6qF5oLg=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359089", password: "ULtzKqVCNR3OWlScR2WRTsy2LSY=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359192", password: "g7rz7jo1AC8iAeHinnX2Y1mn+RE=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359383", password: "dAV7a9fOBiJ7rIMePsO1olv4fF8=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359470", password: "pC0j0lYoSn1E0db+sfbp9jKeaBw=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359620", password: "uSjrU0q8e54QVgpgeYTnXU94NaQ=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359562", password: "WlCrwoHvdNaLDSjMEGlsnfWP1CQ=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359722", password: "uUgI6BU+/PoI8v3Uh5CugMJwEV0=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359790", password: "3obs2p2rT5CiHMcEP7Mh1dzzvLA=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359850", password: "iFIMKDf7+FJeQIY0X3hUdve+724=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359909", password: "zDQOhNu6ZxfPykzzBI2uzJfV7pM=" },
+    { host: "free.expressturn.com", port: 3478,
+      username: "000000002097359969", password: "NIGXb+JHWZ6c8DrHNXzxQ/J73v4=" }
+  ];
 
   // Where the web app is publicly hosted. Inside the Android APK the WebView
   // origin is https://localhost, so location.href can't be used as a share link.
@@ -57,16 +97,22 @@
   // ICE servers: STUN (for same-network/direct paths) + TURN relay (the part
   // that makes cross-network viewing work). Credentials are STATIC, so no
   // fetch is needed — both host and viewer can open their Peer immediately.
-  // TURN entries are listed first so the relay is preferred for cross-network.
+  // Every credential in TURN_CREDENTIALS is expanded into a UDP + a TCP TURN
+  // entry; the ICE layer tries them in order and fails over automatically —
+  // if one relay is unreachable or its quota is exhausted, it moves to the
+  // next. More credentials = more aggregate monthly quota + redundancy.
   function iceServers() {
-    return [
-      { urls: "turn:" + TURN_HOST + ":" + TURN_PORT,
-        username: TURN_USERNAME, credential: TURN_PASSWORD },
-      { urls: "turn:" + TURN_HOST + ":" + TURN_PORT + "?transport=tcp",
-        username: TURN_USERNAME, credential: TURN_PASSWORD },
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.cloudflare.com:3478" }
-    ];
+    var servers = [];
+    for (var i = 0; i < TURN_CREDENTIALS.length; i++) {
+      var c = TURN_CREDENTIALS[i];
+      servers.push({ urls: "turn:" + c.host + ":" + c.port,
+                     username: c.username, credential: c.password });
+      servers.push({ urls: "turn:" + c.host + ":" + c.port + "?transport=tcp",
+                     username: c.username, credential: c.password });
+    }
+    servers.push({ urls: "stun:stun.l.google.com:19302" });
+    servers.push({ urls: "stun:stun.cloudflare.com:3478" });
+    return servers;
   }
 
   // With static TURN credentials there's nothing to fetch, so TURN is always
@@ -1022,16 +1068,21 @@
     }
 
     function render() {
+      // combine JSON message bytes + WebRTC media bytes for total
+      var mt = typeof MediaMeter !== "undefined" ? MediaMeter.totals() : { mediaSent: 0, mediaRecv: 0 };
+      var totalSent = sent + mt.mediaSent;
+      var totalRecv = recv + mt.mediaRecv;
       var up = $("data-up"), down = $("data-down");
-      if (up) up.textContent = human(sent);
-      if (down) down.textContent = human(recv);
+      if (up) up.textContent = human(totalSent);
+      if (down) down.textContent = human(totalRecv);
       var su = $("set-data-up"), sd = $("set-data-down");
-      if (su) su.textContent = human(sent);
-      if (sd) sd.textContent = human(recv);
-      renderDetail();
+      if (su) su.textContent = human(totalSent);
+      if (sd) sd.textContent = human(totalRecv);
+      renderDetail(mt);
     }
 
-    function renderDetail() {
+    function renderDetail(mt) {
+      if (!mt) mt = typeof MediaMeter !== "undefined" ? MediaMeter.totals() : { mediaSent: 0, mediaRecv: 0 };
       var box = $("data-detail");
       if (!box) return;
       // group buckets into a friendly set: chat, sync, react, ping, subs, other
@@ -1069,6 +1120,24 @@
         row.appendChild(val);
         box.appendChild(row);
       }
+      // media (video/audio) row from WebRTC transport stats
+      if (mt.mediaSent || mt.mediaRecv) {
+        var mtTotal = mt.mediaSent + mt.mediaRecv;
+        var mRow = document.createElement("div");
+        mRow.className = "data-row";
+        var mNm = document.createElement("span"); mNm.className = "data-row-name"; mNm.textContent = "media (video/audio)"; mRow.appendChild(mNm);
+        var mBar = document.createElement("span"); mBar.className = "data-bar";
+        var mSentPct = mtTotal ? (mt.mediaSent / mtTotal) * 100 : 0;
+        mBar.innerHTML =
+          '<span class="data-bar-fill" style="width:' + mSentPct + '%"></span>' +
+          '<span class="data-bar-fill recv" style="width:' + (100 - mSentPct) + '%; position:absolute; right:0;"></span>';
+        mBar.style.position = "relative";
+        mRow.appendChild(mBar);
+        var mVal = document.createElement("span"); mVal.className = "data-row-val";
+        mVal.textContent = human(mtTotal);
+        mRow.appendChild(mVal);
+        box.appendChild(mRow);
+      }
       if (!box.children.length) {
         var empty = document.createElement("div");
         empty.className = "set-note";
@@ -1091,9 +1160,73 @@
       addSent: addSent,
       addRecv: addRecv,
       render: render,
+      scheduleRender: scheduleRender,
       reset: reset,
       totals: function () { return { sent: sent, recv: recv }; }
     };
+  })();
+
+  /* ---- MediaMeter: WebRTC transport-level byte counter ---- */
+  // Tracks actual media bytes (video/audio screen share) via getStats().
+  // PeerJS exposes the raw RTCPeerConnection on MediaConnection.peerConnection.
+  var MediaMeter = (function () {
+    var mediaSent = 0, mediaRecv = 0;
+    var _timer = null, _prevSent = {}, _prevRecv = {};
+    var POLL_MS = 2000;
+
+    function start(pc) {
+      if (!pc || typeof pc.getStats !== "function") return;
+      if (_timer) clearInterval(_timer);
+      _prevSent = {}; _prevRecv = {};
+      _timer = setInterval(function () { poll(pc); }, POLL_MS);
+    }
+
+    function poll(pc) {
+      if (!pc || pc.connectionState === "closed") { stop(); return; }
+      try {
+        pc.getStats().then(function (report) {
+          var totalS = 0, totalR = 0;
+          report.forEach(function (stat) {
+            // Prefer candidate-pair (the active transport pair) for most
+            // accurate aggregate byte counts. Fall back to summing all
+            // outbound/inbound-rtp streams.
+            if (stat.type === "candidate-pair" && stat.state === "succeeded") {
+              if (typeof stat.bytesSent === "number") totalS += stat.bytesSent;
+              if (typeof stat.bytesReceived === "number") totalR += stat.bytesReceived;
+            } else if (stat.type === "outbound-rtp" && typeof stat.bytesSent === "number") {
+              totalS += stat.bytesSent;
+            } else if (stat.type === "inbound-rtp" && typeof stat.bytesReceived === "number") {
+              totalR += stat.bytesReceived;
+            }
+          });
+          // accumulate deltas (counters may reset on renegotiation)
+          var id = pc.id || "_main";
+          if (_prevSent[id] !== undefined) {
+            var ds = totalS - _prevSent[id];
+            var dr = totalR - _prevRecv[id];
+            if (ds > 0) mediaSent += ds;
+            if (dr > 0) mediaRecv += dr;
+          }
+          _prevSent[id] = totalS;
+          _prevRecv[id] = totalR;
+          DataMeter.scheduleRender();
+        }).catch(function () {});
+      } catch (e) {}
+    }
+
+    function stop() {
+      if (_timer) { clearInterval(_timer); _timer = null; }
+    }
+
+    function reset() {
+      stop();
+      mediaSent = 0; mediaRecv = 0;
+      _prevSent = {}; _prevRecv = {};
+    }
+
+    function totals() { return { mediaSent: mediaSent, mediaRecv: mediaRecv }; }
+
+    return { start: start, stop: stop, reset: reset, totals: totals };
   })();
 
   /* ---- Network Information API + Data Saver ---- */
@@ -1901,6 +2034,23 @@
     }
     broadcast({ t: "src", srcType: "screen" });
 
+    // start tracking WebRTC media bytes for the sender
+    // PeerJS's Peer keeps internal connections; we grab the first media
+    // connection's underlying RTCPeerConnection. If not available yet,
+    // that's fine — MediaMeter will pick it up on the receiver side.
+    try {
+      var conns = state.peer._connections || {};
+      var peerIds = Object.keys(conns);
+      for (var ci = 0; ci < peerIds.length; ci++) {
+        var arr = conns[peerIds[ci]];
+        for (var cj = 0; cj < arr.length; cj++) {
+          if (arr[cj] && arr[cj].peerConnection && arr[cj].type === "media") {
+            MediaMeter.start(arr[cj].peerConnection);
+          }
+        }
+      }
+    } catch (e) {}
+
     // when the user stops via browser UI
     var vt = stream.getVideoTracks()[0];
     if (vt) vt.addEventListener("ended", function () { stopScreenShare(); });
@@ -1913,6 +2063,7 @@
   function stopScreenShare() {
     if (!state.sharingScreen) return;
     state.sharingScreen = false;
+    MediaMeter.stop();
     state.srcType = state.fileName ? "file" : null;
     if (state.screenStream) {
       state.screenStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
@@ -1945,8 +2096,11 @@
       hideEmpty(); hideOverlay();
       player.play().catch(function () {});
       toast("Host is sharing their screen 🖥️", "ok");
+      // start tracking WebRTC media bytes for the receiver
+      try { if (call.peerConnection) MediaMeter.start(call.peerConnection); } catch (e) {}
     });
     call.on("close", function () {
+      MediaMeter.stop();
       if (player.srcObject === state.remoteStream) {
         player.srcObject = null;
         showEmpty("Host stopped sharing", "Waiting for host…");
@@ -2018,6 +2172,7 @@
     try { ChatDrawer.close(); } catch (e) {}
     try { $("chat-fab").classList.add("hidden"); } catch (e) {}
     DataMeter.reset();
+    MediaMeter.reset();
     setOnline("offline");
     showScreen("lobby");
   }
