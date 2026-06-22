@@ -2574,6 +2574,36 @@
     var ready = false, inFs = false, open = false;
     var unread = 0, replyTo = null;
     var idleTimer = null, IDLE_MS = 3500;
+    var vvHandler = null, kbTimer = null;
+
+    // ---- mobile keyboard handling ------------------------------------------------
+    // On phones the soft keyboard overlays the page and would cover the composer.
+    // visualViewport.resize fires when the keyboard opens/closes; we compute how
+    // much of the viewport is eaten and push the panel's bottom up by that amount
+    // (via the --kb-offset CSS var), then re-pin the message list to the bottom so
+    // the newest text stays visible while typing.
+    function applyKbOffset() {
+      var vv = window.visualViewport;
+      var kb = 0;
+      if (vv) {
+        kb = Math.max(0, window.innerHeight - vv.height);
+      }
+      // ignore the harmless sub-pixel jitter
+      if (kb < 8) kb = 0;
+      panel.style.setProperty("--kb-offset", kb + "px");
+      // keep the latest message on screen after the panel shrinks
+      if (kbTimer) cancelAnimationFrame(kbTimer);
+      kbTimer = requestAnimationFrame(function () {
+        try { msgs.scrollTop = msgs.scrollHeight; } catch (e) {}
+      });
+    }
+    function attachViewport() {
+      var vv = window.visualViewport;
+      if (!vv || vvHandler) return;
+      vvHandler = function () { if (open) applyKbOffset(); };
+      vv.addEventListener("resize", vvHandler);
+      vv.addEventListener("scroll", vvHandler);
+    }
 
     function ensure() {
       if (ready) return;
@@ -2605,6 +2635,23 @@
         } catch (err) { sendChat(v); }
         setReply(null);
         bumpIdle();
+      });
+
+      // keyboard follows: when the input gains focus, pin the panel above the
+      // soft keyboard; on blur, drop it back down. (focus/blur are the most
+      // reliable cross-browser signal — visualViewport.resize can lag.)
+      input.addEventListener("focus", function () {
+        attachViewport();
+        // give the keyboard a beat to animate in before measuring
+        setTimeout(function () { if (open) applyKbOffset(); }, 120);
+        setTimeout(function () { if (open) applyKbOffset(); }, 320);
+      });
+      input.addEventListener("blur", function () {
+        setTimeout(function () {
+          if (open && document.activeElement !== input) {
+            panel.style.setProperty("--kb-offset", "0px");
+          }
+        }, 120);
       });
 
       // any pointer/keyboard activity over the wrap postpones the auto-hide
@@ -2675,6 +2722,7 @@
       clearUnread();
       syncFromMain();
       wrap.classList.remove("fschat-idle");
+      attachViewport();
       setTimeout(function () { try { input.focus({ preventScroll: true }); } catch (e) {} }, 240);
     }
     function close() {
@@ -2682,6 +2730,7 @@
       open = false;
       panel.classList.remove("open");
       try { input.blur(); } catch (e) {}
+      panel.style.setProperty("--kb-offset", "0px");
       setTimeout(function () { if (!open) panel.hidden = true; }, 280);
     }
     function toggle() { if (open) close(); else openPanel(); }
@@ -2696,6 +2745,7 @@
         if (clone) msgs.appendChild(clone);
       }
       msgs.scrollTop = msgs.scrollHeight;
+      requestAnimationFrame(function () { msgs.scrollTop = msgs.scrollHeight; });
     }
 
     // deep-clone a .msg node, stripping interactivity (reaction picker,
@@ -2720,7 +2770,14 @@
         if (clone) {
           msgs.appendChild(clone);
           while (msgs.children.length > 200) msgs.removeChild(msgs.firstChild);
-          if (open) msgs.scrollTop = msgs.scrollHeight;
+          if (open) {
+            // pin to the bottom now, and again after the layout settles so a
+            // freshly-opened soft keyboard can't hide the newest message
+            msgs.scrollTop = msgs.scrollHeight;
+            requestAnimationFrame(function () {
+              msgs.scrollTop = msgs.scrollHeight;
+            });
+          }
         }
       }
       // toast only for OTHER people's messages, and only when panel is closed
