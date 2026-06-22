@@ -4,7 +4,7 @@
    Network-first for the HTML (so updates land quickly),
    cache-first for static assets.
    ============================================================ */
-var CACHE = "watch-party-v4";
+var CACHE = "watch-party-v5";
 var SHELL = [
   "./",
   "./index.html",

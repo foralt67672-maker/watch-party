@@ -1141,10 +1141,8 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
   top: 0; right: 0; bottom: 0;
   width: min(380px, 92vw);
   flex-direction: column;
-  background: rgba(13,14,18,calc(.82 * var(--fs-chat-bg-op)));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-left: 1px solid rgba(255,255,255,calc(.1 * var(--fs-chat-bg-op)));
+  /* no panel background, no blur, no border — messages float on the video */
+  background: transparent;
   z-index: 16;
   color: var(--text);
   /* slide in */
@@ -1156,7 +1154,7 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
 .fs-chat-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-bottom: 0;
   flex-shrink: 0;
   /* keep clear of notches in landscape */
   padding-top: max(12px, var(--sat));
@@ -1203,9 +1201,30 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
 }
 .fs-chat-msgs::-webkit-scrollbar { width: 6px; }
 .fs-chat-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 3px; }
-/* cloned .msg bubbles keep their own styling; tweak for the dark glass panel */
-.fs-chat-msgs .msg { color: var(--text); }
+/* cloned .msg bubbles — no backgrounds/borders, text floats over the video.
+   Light text with a subtle dark shadow so it stays readable on any frame. */
+.fs-chat-msgs .msg {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 8px rgba(0,0,0,.6);
+}
+.fs-chat-msgs .msg .meta { text-shadow: 0 1px 3px rgba(0,0,0,.85); }
 .fs-chat-msgs .msg .meta .who { color: var(--accent); }
+/* drop the bubble chrome on the message body */
+.fs-chat-msgs .msg .body {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.fs-chat-msgs .msg.me .body {
+  background: transparent;
+  border-color: transparent;
+}
+/* system pills keep nothing either — just the text */
+.fs-chat-msgs .msg.sys {
+  background: transparent;
+  color: rgba(255,255,255,.9);
+  text-shadow: 0 1px 3px rgba(0,0,0,.85);
+}
 
 /* customizable chat opacity — fullscreen overlay only (set in Settings).
    --fs-chat-text-op fades each message as a unit: the bubble background,
@@ -1218,9 +1237,9 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
   display: flex; gap: 8px;
   padding: 10px 12px;
   padding-bottom: max(10px, var(--sab));
-  border-top: 1px solid rgba(255,255,255,.08);
+  border-top: 0;
   flex-shrink: 0; align-items: center;
-  background: rgba(0,0,0,.25);
+  background: transparent;
 }
 .fs-chat-form input {
   flex: 1;
