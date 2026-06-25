@@ -989,13 +989,14 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
 }
 
 /* ============================================================
-   FULLSCREEN CHAT PANEL ANIMATION
+   FULLSCREEN CHAT PANEL WITH KEYBOARD SUPPORT
    ============================================================ */
 #fs-chat-panel {
   position: fixed !important;
   right: 0;
   top: 0;
-  width: 340px;
+  width: 100%;
+  max-width: 340px;
   height: 100%;
   background: var(--panel);
   border-left: 1px solid var(--border);
@@ -1004,6 +1005,11 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
   flex-direction: column;
   animation: slideInChat 0.3s ease;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+  
+  /* KEYBOARD FIX: Don't let keyboard push this panel off-screen */
+  bottom: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 @keyframes slideInChat {
@@ -1027,6 +1033,77 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
     opacity: 0;
     transform: translateX(100%);
   }
+}
+
+/* Fix chat messages container to scroll above keyboard */
+#fs-chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Fix chat form to stay visible above keyboard */
+#fs-chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  /* KEYBOARD FIX: Use bottom safe-area but allow flexibility */
+  padding-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px)));
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  align-items: center;
+  background: var(--panel);
+  /* Ensure input is visible */
+  position: relative;
+  z-index: 150;
+}
+
+#fs-chat-form input {
+  flex: 1;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 40px;
+  font: inherit;
+  font-size: 16px;
+  transition: border-color .14s;
+}
+
+#fs-chat-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  /* KEYBOARD FIX: Scroll input into view when focused */
+  scroll-behavior: smooth;
+}
+
+#fs-chat-form button {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: var(--accent);
+  border: none;
+  color: #0a0b10;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .14s, transform .08s;
+}
+
+#fs-chat-form button:hover {
+  background: var(--accent-d);
+}
+
+#fs-chat-form button:active {
+  transform: scale(.92);
 }
 
 /* ============================================================
@@ -1094,6 +1171,12 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
   #fs-chat-btn svg {
     width: 22px;
     height: 22px;
+  }
+  
+  /* Make chat panel full width on small phones */
+  #fs-chat-panel {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
