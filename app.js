@@ -2762,10 +2762,14 @@
     function close() {
       if (!open) return;
       open = false;
+      panel.classList.add("closing");
       panel.classList.remove("open");
       try { input.blur(); } catch (e) {}
       panel.style.setProperty("--kb-offset", "0px");
-      setTimeout(function () { if (!open) panel.hidden = true; }, 280);
+      setTimeout(function () {
+        panel.classList.remove("closing");
+        if (!open) panel.hidden = true;
+      }, 250);
     }
     function toggle() { if (open) close(); else openPanel(); }
 
