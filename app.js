@@ -2766,9 +2766,10 @@
       panel.classList.remove("open");
       try { input.blur(); } catch (e) {}
       panel.style.setProperty("--kb-offset", "0px");
+      // hide after animation completes
       setTimeout(function () {
         panel.classList.remove("closing");
-        if (!open) panel.hidden = true;
+        panel.hidden = true;
       }, 250);
     }
     function toggle() { if (open) close(); else openPanel(); }
