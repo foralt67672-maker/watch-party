@@ -2910,8 +2910,8 @@
     var raf = 0;                    // current rAF handle (0 = loop stopped)
     var lastFlush = 0;              // ts of last streamed point batch
     var FLUSH_MS = 50;              // throttle for live point streaming
-    var LIFE_MS = 7000;             // total stroke lifetime
-    var FADE_MS = 2000;             // ramp 1 -> 0 over the last 2s
+    var LIFE_MS = Infinity;         // strokes stay until manually cleared
+    var FADE_MS = 2000;             // ramp 1 -> 0 over the last 2s (kept for compatibility)
     var lineW = 3;                  // current brush width in CSS px
     var userColor = null;           // if set, overrides colorForName(name)
     var colorInput = null;          // hidden <input type=color> for the swatch
