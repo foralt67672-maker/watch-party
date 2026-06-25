@@ -1,0 +1,26 @@
+/* Ensure fullscreen chat panel appears above the mobile backdrop / sheets */
+#fs-chat-panel {
+  position: fixed !important;
+  right: 0;
+  top: 0;
+  width: 100%;
+  max-width: 340px;
+  height: 100%;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  z-index: 1000;            /* raised above .chat-backdrop (190) and sheets */
+  display: flex;
+  flex-direction: column;
+  animation: slideInChat 0.3s ease;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Make sure the close button itself is on top and can receive clicks */
+.fs-chat-close {
+  position: relative;       /* needed for z-index to take effect */
+  z-index: 1100;
+  pointer-events: auto;
+}
