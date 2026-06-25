@@ -991,6 +991,39 @@ input[type="range"].fs-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px
 /* ============================================================
    FULLSCREEN CHAT PANEL WITH KEYBOARD SUPPORT
    ============================================================ */
+/* fullscreen chat header */
+.fs-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.fs-chat-title {
+  font-weight: 600;
+  flex: 1;
+  font-size: 16px;
+}
+
+/* close button in the fullscreen chat header */
+.fs-chat-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .14s, color .14s;
+}
+.fs-chat-close:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
 #fs-chat-panel {
   position: fixed !important;
   right: 0;
